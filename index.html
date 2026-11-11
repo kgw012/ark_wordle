@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>아크워들 (ArkWordle) - 아크노바 동물카드 맞히기 퀴즈</title>
+  <meta name="description" content="포케워들 스타일의 보드게임 아크노바(Ark Nova) 동물 카드 추리 퀴즈! 크기, 인접조건, 비용, 추가조건, 종류, 대륙, 능력을 비교해 오늘의 동물을 맞혀보세요." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- 상단 헤더 -->
+    <header class="top-header">
+      <div class="brand-group">
+        <div class="logo-badge" aria-hidden="true">🦁</div>
+        <div>
+          <h1 class="brand-title">ARKWORDLE <span class="brand-sub">아크노바 동물 맞히기</span></h1>
+          <p class="brand-desc">7가지 단서(크기·인접조건·비용·추가조건·종류·대륙·능력)로 동물 카드를 추리하세요!</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="btn-dex" class="icon-btn" title="동물 도감 / 카드 목록 보기">
+          <span>📖</span> <span class="btn-label">동물 도감</span>
+        </button>
+        <button id="btn-stats" class="icon-btn" title="전적 및 통계">
+          <span>📊</span> <span class="btn-label">통계</span>
+        </button>
+        <button id="btn-help" class="icon-btn" title="게임 규칙 및 힌트 안내">
+          <span>❓</span> <span class="btn-label">규칙</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- 게임 설정 & 모드 컨트롤 바 -->
+    <section class="control-bar" aria-label="게임 모드 및 필터">
+      <div class="mode-tabs" role="tablist">
+        <button id="mode-daily" class="mode-tab active" data-mode="daily" role="tab" aria-selected="true">
+          📅 오늘의 동물 <span id="daily-number" class="badge-pill">#1</span>
+        </button>
+        <button id="mode-unlimited" class="mode-tab" data-mode="unlimited" role="tab" aria-selected="false">
+          ♾️ 무한 모드
+        </button>
+      </div>
+
+      <div class="filter-controls">
+        <div class="control-item">
+          <label for="pool-select">카드 범위</label>
+          <select id="pool-select" title="출제 카드 범위 선택">
+            <option value="all">전체 (본판 + 바다 세계, 161종)</option>
+            <option value="base">본판만 (#401~#528, 128종)</option>
+            <option value="marine">바다 세계 확장 (#529~#561, 33종)</option>
+          </select>
+        </div>
+
+        <div class="control-item">
+          <label for="max-guesses-select">기회</label>
+          <select id="max-guesses-select" title="최대 시도 횟수 선택">
+            <option value="6">6회</option>
+            <option value="8" selected>8회 (기본)</option>
+            <option value="10">10회</option>
+            <option value="999">무제한</option>
+          </select>
+        </div>
+
+        <button id="btn-hint" class="action-chip hint-chip" title="정답 카드의 추가 힌트(보상/번호 범위) 보기">
+          💡 힌트 <span id="hint-count-badge">0/2</span>
+        </button>
+        <button id="btn-giveup" class="action-chip danger-chip" title="현재 라운드 포기하고 정답 확인">
+          🏳️ 정답 보기
+        </button>
+        <button id="btn-new-game" class="action-chip primary-chip hidden" title="새로운 무작위 동물로 시작">
+          🔄 새 게임
+        </button>
+      </div>
+    </section>
+
+    <!-- 힌트 패널 (활성화 시 표시) -->
+    <section id="hint-banner" class="hint-banner hidden" aria-live="polite"></section>
+
+    <!-- 실시간 추리 요약 보드 -->
+    <section id="deduction-panel" class="deduction-panel">
+      <div class="deduction-header">
+        <span class="deduction-title">🔍 추리 요약 노트</span>
+        <span id="remaining-candidates-badge" class="candidates-badge" title="현재까지의 단서와 일치하는 후보 수">남은 후보: 161종</span>
+      </div>
+      <div class="deduction-grid">
+        <div class="deduction-box">
+          <span class="deduction-label">크기 범위</span>
+          <strong id="deduce-size" class="deduction-val">1 ~ 5</strong>
+        </div>
+        <div class="deduction-box">
+          <span class="deduction-label">비용 범위</span>
+          <strong id="deduce-cost" class="deduction-val">4 ~ 36</strong>
+        </div>
+        <div class="deduction-box wide">
+          <span class="deduction-label">종류 단서</span>
+          <div id="deduce-categories" class="tag-row"></div>
+        </div>
+        <div class="deduction-box wide">
+          <span class="deduction-label">대륙 단서</span>
+          <div id="deduce-continents" class="tag-row"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 검색 및 동물 입력 영역 -->
+    <section class="search-section">
+      <div class="search-bar-wrap">
+        <div class="search-input-container">
+          <span class="search-icon" aria-hidden="true">🔎</span>
+          <input
+            type="text"
+            id="animal-input"
+            placeholder="동물 이름(한글/초성/영어) 또는 카드 번호(#401~#561) 입력..."
+            autocomplete="off"
+            aria-label="동물 카드 검색"
+          />
+          <button id="btn-clear-input" class="clear-input-btn hidden" title="입력 지우기" aria-label="입력 지우기">✕</button>
+        </div>
+        <div class="attempt-counter" id="attempt-status">
+          시도 <strong id="current-attempt">0</strong> / <span id="max-attempt">8</span>
+        </div>
+      </div>
+
+      <!-- 자동완성 드롭다운 -->
+      <ul id="autocomplete-list" class="autocomplete-list hidden" role="listbox"></ul>
+    </section>
+
+    <!-- 색상/기호 범례 바 -->
+    <section class="legend-bar" aria-label="단서 판정 범례">
+      <span class="legend-item"><span class="dot dot-correct">✓</span> 정확히 일치</span>
+      <span class="legend-item"><span class="dot dot-partial">≈</span> 일부 일치 / 근접(비용 ±3, 크기 ±1)</span>
+      <span class="legend-item"><span class="dot dot-wrong">✕</span> 불일치</span>
+      <span class="legend-item"><span class="dot dot-arrow">↑</span> 정답이 더 높음/큼</span>
+      <span class="legend-item"><span class="dot dot-arrow">↓</span> 정답이 더 낮음/작음</span>
+      <span class="legend-tip">💡 추측한 동물 카드를 클릭하면 원본 영문 카드 이미지와 상세 정보를 크게 볼 수 있습니다.</span>
+    </section>
+
+    <!-- 추측 결과 테이블 -->
+    <section class="guesses-section">
+      <div class="table-scroll-container">
+        <div class="guess-grid-header" role="row">
+          <div class="col-header col-animal">동물 카드</div>
+          <div class="col-header" title="사육장 기본 크기(1~5) 및 특수 사육장(파충류/새장/수족관)">크기</div>
+          <div class="col-header" title="바위 또는 물 인접 조건">인접조건</div>
+          <div class="col-header" title="동물 카드를 내려놓는 기본 비용(돈)">비용</div>
+          <div class="col-header" title="필요한 아이콘, 자매동물원, 자매대학, 2레벨 동물 등">추가조건</div>
+          <div class="col-header" title="포식, 초식, 영장류, 파충류, 조류, 곰, 동물체험장, 해양 동물">종류</div>
+          <div class="col-header" title="아프리카, 아시아, 아메리카, 유럽, 오스트레일리아">대륙</div>
+          <div class="col-header" title="동물 고유 능력 및 산호초살이 효과">능력</div>
+        </div>
+
+        <div id="guesses-container" class="guesses-container">
+          <!-- 빈 상태 안내 -->
+          <div id="empty-state" class="empty-state">
+            <div class="empty-icon">🐾</div>
+            <p class="empty-title">첫 번째 아크노바 동물을 입력해 추리를 시작해보세요!</p>
+            <p class="empty-sub">예: <button class="quick-pick-btn" data-id="401">#401 치타</button> <button class="quick-pick-btn" data-id="426">#426 아프리카코끼리</button> <button class="quick-pick-btn" data-id="452">#452 서부고릴라</button> <button class="quick-pick-btn" data-id="506">#506 황제펭귄</button></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 푸터 -->
+    <footer class="app-footer">
+      <p>
+        데이터 출처: <a href="https://namu.wiki/w/%EC%95%84%ED%81%AC%EB%85%B8%EB%B0%94/%EB%8F%99%EB%AC%BC%20%EC%B9%B4%EB%93%9C" target="_blank" rel="noopener">나무위키 (아크노바/동물 카드)</a> ·
+        카드 이미지: <a href="https://ssimeonoff.github.io/ark-nova" target="_blank" rel="noopener">ssimeonoff Ark Nova Cards</a> ·
+        영감: <a href="https://www.pokewordle.app/ko" target="_blank" rel="noopener">PokéWordle</a>
+      </p>
+    </footer>
+  </div>
+
+  <!-- 정답/종료 결과 모달 -->
+  <div id="result-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="result-modal-title">
+    <div class="modal-card result-modal-card">
+      <button class="modal-close" data-close="result-modal" aria-label="닫기">✕</button>
+      <div id="result-badge" class="result-badge">🎉 정답입니다!</div>
+      <h2 id="result-modal-title" class="result-title">#401 치타 (Cheetah)</h2>
+      <p id="result-subtitle" class="result-subtitle">3번째 시도 만에 맞혔습니다!</p>
+
+      <div class="result-card-showcase">
+        <div id="result-card-image-slot" class="result-card-image-slot"></div>
+        <div class="result-card-details">
+          <div class="detail-badges" id="result-detail-badges"></div>
+          <div class="detail-table" id="result-detail-table"></div>
+          <div class="detail-comment" id="result-detail-comment"></div>
+          <div class="detail-links" id="result-detail-links"></div>
+        </div>
+      </div>
+
+      <div class="result-actions">
+        <button id="btn-share-result" class="btn-primary">📋 결과 복사하기 (공유)</button>
+        <button id="btn-play-again" class="btn-secondary">♾️ 다른 동물 더 풀기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 카드 상세 확대 모달 -->
+  <div id="card-detail-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="detail-modal-title">
+    <div class="modal-card detail-modal-card">
+      <button class="modal-close" data-close="card-detail-modal" aria-label="닫기">✕</button>
+      <h2 id="detail-modal-title" class="result-title">#401 치타</h2>
+      <div class="result-card-showcase">
+        <div id="detail-card-image-slot" class="result-card-image-slot"></div>
+        <div class="result-card-details">
+          <div class="detail-badges" id="detail-badges"></div>
+          <div class="detail-table" id="detail-table"></div>
+          <div class="detail-comment" id="detail-comment"></div>
+          <div class="detail-links" id="detail-links"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 동물 도감 / 후보 필터 모달 -->
+  <div id="dex-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="dex-modal-title">
+    <div class="modal-card dex-modal-card">
+      <button class="modal-close" data-close="dex-modal" aria-label="닫기">✕</button>
+      <h2 id="dex-modal-title" class="modal-heading">📖 아크노바 동물 도감 & 후보 탐색기</h2>
+      <p class="modal-sub">카드를 클릭하면 바로 추측 입력창에 선택하거나 카드를 확대해 볼 수 있습니다.</p>
+
+      <div class="dex-filters">
+        <input type="text" id="dex-search" placeholder="이름, 능력, 추가조건 검색..." />
+        <select id="dex-category">
+          <option value="">모든 종류</option>
+          <option value="포식 동물">포식 동물</option>
+          <option value="초식 동물">초식 동물</option>
+          <option value="영장류">영장류</option>
+          <option value="파충류">파충류</option>
+          <option value="조류">조류</option>
+          <option value="곰">곰</option>
+          <option value="동물체험장 동물">동물체험장 동물</option>
+          <option value="해양 동물">해양 동물</option>
+        </select>
+        <select id="dex-continent">
+          <option value="">모든 대륙</option>
+          <option value="아프리카">아프리카</option>
+          <option value="아시아">아시아</option>
+          <option value="아메리카">아메리카</option>
+          <option value="유럽">유럽</option>
+          <option value="오스트레일리아">오스트레일리아</option>
+          <option value="없음">대륙 없음</option>
+        </select>
+        <label class="checkbox-label">
+          <input type="checkbox" id="dex-only-possible" />
+          현재 단서와 일치하는 후보만 보기
+        </label>
+      </div>
+
+      <div id="dex-grid" class="dex-grid"></div>
+    </div>
+  </div>
+
+  <!-- 통계 모달 -->
+  <div id="stats-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="stats-modal-title">
+    <div class="modal-card stats-modal-card">
+      <button class="modal-close" data-close="stats-modal" aria-label="닫기">✕</button>
+      <h2 id="stats-modal-title" class="modal-heading">📊 나의 추리 통계</h2>
+      <div class="stats-summary-grid">
+        <div class="stat-box">
+          <span class="stat-num" id="stat-played">0</span>
+          <span class="stat-label">플레이</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-num" id="stat-winrate">0%</span>
+          <span class="stat-label">승률</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-num" id="stat-streak">0</span>
+          <span class="stat-label">현재 연승</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-num" id="stat-max-streak">0</span>
+          <span class="stat-label">최대 연승</span>
+        </div>
+      </div>
+      <h3 class="dist-heading">시도 횟수 분포</h3>
+      <div id="stats-distribution" class="stats-distribution"></div>
+    </div>
+  </div>
+
+  <!-- 규칙 모달 -->
+  <div id="help-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="help-modal-title">
+    <div class="modal-card help-modal-card">
+      <button class="modal-close" data-close="help-modal" aria-label="닫기">✕</button>
+      <h2 id="help-modal-title" class="modal-heading">❓ 게임 방법 및 단서 규칙</h2>
+      <div class="help-body">
+        <p><strong>아크워들(ArkWordle)</strong>은 포케워들(PokéWordle) 방식으로 보드게임 <strong>《아크 노바》</strong>의 동물 카드를 추리해 맞히는 게임입니다.</p>
+        <ul class="help-list">
+          <li><strong>크기:</strong> 기본 사육장 크기(1~5) 및 특수 사육장(파충류 사육장, 대형 새장, 수족관) 가능 여부를 비교합니다. 기본 크기가 다르면 화살표(↑/↓)로 정답의 크기가 더 큰지 작은지 알려줍니다.</li>
+          <li><strong>인접조건:</strong> 바위/물 인접 필요 여부를 비교합니다. 종류가 일부 겹치거나 개수가 다르면 <span class="badge-inline partial">노란색(≈)</span>으로 표시됩니다.</li>
+          <li><strong>비용:</strong> 동물을 내려놓는 돈 비용을 비교합니다. 정답과의 차이가 <strong>±3 이내</strong>이면 <span class="badge-inline partial">노란색(≈)</span>과 방향 화살표(↑/↓)가 함께 표시됩니다.</li>
+          <li><strong>추가조건:</strong> 요구하는 아이콘, 2레벨 동물, 자매동물원, 자매대학 등을 비교합니다. 요구 조건 중 일부 카테고리가 겹치면 <span class="badge-inline partial">노란색(≈)</span>으로 표시됩니다.</li>
+          <li><strong>종류 & 대륙:</strong> 동물의 종류(포식/초식/영장류/파충류/조류/곰/체험장/해양)와 대륙을 비교합니다. 복합 종류 중 하나가 일치하거나 아이콘 개수(1개 vs 2개)만 다르면 <span class="badge-inline partial">노란색(≈)</span>으로 표시됩니다.</li>
+          <li><strong>능력:</strong> 동물 고유 능력을 비교합니다. 능력의 종류(예: 사냥꾼, 전력 질주, 증가, 배수, 산호초 효과 등)가 같고 세부 수치/대상만 다르면 <span class="badge-inline partial">노란색(≈)</span>으로 표시됩니다.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 토스트 알림 -->
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
