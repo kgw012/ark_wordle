@@ -18,3 +18,11 @@
 
 ## 🚀 배포 (Vercel)
 정적 HTML/CSS/JS 프로젝트이므로 GitHub 저장소에 업로드한 뒤 Vercel에서 바로 배포할 수 있습니다.
+
+## ⚖️ 저작권 및 비영리 2차 창작 안내 (Disclaimer & License)
+- 본 프로젝트는 보드게임 **《아크 노바(Ark Nova)》** 팬들을 위해 제작된 **비공식·비영리 2차 창작물(Fan-made Project)**이며, 상업적 수익을 창출하지 않습니다.
+- 보드게임 《Ark Nova》의 게임 디자인, 일러스트, 아이콘 등 원저작물에 대한 모든 권리는 원작자(**Mathias Wigge**) 및 공식 출판사(**Feuerland Spiele, Capstone Games, 코리아보드게임즈** 등)에 있습니다.
+- **게임 방식 영감**: [PokéWordle (포케워들)](https://www.pokewordle.app/ko)
+- **영문 카드 이미지 리소스**: [ssimeonoff Ark Nova Cards](https://ssimeonoff.github.io/ark-nova)
+- **국문 카드 데이터 및 평가 출처**: [나무위키 - 아크노바/동물 카드](https://namu.wiki/w/%EC%95%84%ED%81%AC%EB%85%B8%EB%B0%94/%EB%8F%99%EB%AC%BC%20%EC%B9%B4%EB%93%9C) (크리에이티브 커먼즈 [CC BY-NC-SA 2.0 KR](https://creativecommons.org/licenses/by-nc-sa/2.0/kr/) 라이선스 적용)
+
